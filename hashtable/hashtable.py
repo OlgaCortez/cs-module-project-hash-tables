@@ -21,7 +21,8 @@ class HashTable:
     """
 
     def __init__(self, capacity):
-        # Your code here
+        self.bucket = [None for i in range(capacity)]
+        self.capacity = capacity
 
 
     def get_num_slots(self):
@@ -62,7 +63,13 @@ class HashTable:
 
         Implement this, and/or FNV-1.
         """
-        # Your code here
+        hash = 5381
+        byte_array = key.encode('utf-8')
+
+        for byte in byte_array:
+            hash = ((hash * 33) ^ byte) % 0x100000000
+
+        return hash
 
 
     def hash_index(self, key):
@@ -81,7 +88,24 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        key_hash = self.djb2(key)
+        bucket_idx = key_hash % self.capacity
+
+        new = HashTableEntry(key, value)
+        existing = self.bucket[bucket_idx]
+
+        if existing:
+            last = None
+            while existing:
+                if existing.key == key:
+                    existing.value = value
+                    return
+                last = existing
+                existing = existing.next
+
+            last.next = new
+        else:
+            self.bucket[bucket_idx] = new
 
 
     def delete(self, key):
@@ -92,7 +116,20 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        key_hash = self.djb2(key)
+        bucket_idx = key_hash % self.capacity
+
+        existing_value = self.bucket[bucket_idx]
+        if existing_value:
+            last = None
+            while existing_value:
+                if existing_value.key == key:
+                    if last:
+                        last.next = existing_value.next
+                    else:
+                        self.bucket[bucket_idx] = existing_value.next
+                last = existing_value
+                existing_value = existing_value.next
 
 
     def get(self, key):
@@ -103,7 +140,17 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        key_hash = self.djb2(key)
+        bucket_idx = key_hash % self.capacity
+
+        existing_value = self.bucket[bucket_idx]
+        if existing_value:
+            while existing_value:
+                if existing_value.key == key:
+                    return existing_value.value
+                existing_value = existing_value.next
+
+        return None
 
 
     def resize(self, new_capacity):
