@@ -21,8 +21,8 @@ class HashTable:
     """
 
     def __init__(self, capacity):
-        self.bucket = [None for i in range(capacity)]
-        self.capacity = capacity
+        self.bucket = [None] * capacity #storage
+        self.capacity = capacity 
 
 
     def get_num_slots(self):
@@ -35,7 +35,7 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        return len(self.bucket)
 
 
     def get_load_factor(self):
@@ -44,7 +44,16 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        load = 0
+        for x in self.bucket:
+            if x != None:
+                load += 1
+        load_factor = load / self.capacity
+        if load_factor > 0.7:
+            self.resize(int(2 * self.capacity))
+        elif load_factor < 0.2:
+            self.resize(int(self.capacity / 2))
+        return load_factor
 
 
     def fnv1(self, key):
@@ -80,6 +89,16 @@ class HashTable:
         #return self.fnv1(key) % self.capacity
         return self.djb2(key) % self.capacity
 
+    def rehash(self, key, value):
+        h = self.hash_index(key)
+        current_value = self.bucket[h]
+        if current_value == None:
+            self.bucket[h] = HashTableEntry(key, value)
+        else:
+            new_entry = HashTableEntry(key, value)
+            new_entry.next = current_value
+            self.bucket[h] = new_entry        
+
     def put(self, key, value):
         """
         Store the value with the given key.
@@ -88,24 +107,34 @@ class HashTable:
 
         Implement this.
         """
-        key_hash = self.djb2(key)
-        bucket_idx = key_hash % self.capacity
-
-        new = HashTableEntry(key, value)
-        existing = self.bucket[bucket_idx]
-
-        if existing:
-            last = None
-            while existing:
-                if existing.key == key:
-                    existing.value = value
-                    return
-                last = existing
-                existing = existing.next
-
-            last.next = new
+        h = self.hash_index(key)
+        current_value = self.bucket[h]
+        if current_value == None:
+            self.bucket[h] = HashTableEntry(key, value)
         else:
-            self.bucket[bucket_idx] = new
+            new_entry = HashTableEntry(key, value)
+            new_entry.next = current_value
+            self.bucket[h] = new_entry
+        self.get_load_factor()
+
+        # key_hash = self.djb2(key)
+        # bucket_idx = key_hash % self.capacity
+
+        # new = HashTableEntry(key, value)
+        # existing = self.bucket[bucket_idx]
+
+        # if existing:
+        #     last = None
+        #     while existing:
+        #         if existing.key == key:
+        #             existing.value = value
+        #             return
+        #         last = existing
+        #         existing = existing.next
+
+        #     last.next = new
+        # else:
+        #     self.bucket[bucket_idx] = new
 
 
     def delete(self, key):
@@ -116,20 +145,33 @@ class HashTable:
 
         Implement this.
         """
-        key_hash = self.djb2(key)
-        bucket_idx = key_hash % self.capacity
+        h = self.hash_index(key)
+        current_node = self.bucket[h]
+        while current_node.next != None:
+            if current_node.key == key:
+                current_node.value = None
+                return
+            else:
+                current_node = current_node.next
+        if current_node.next == None:
+            if current_node.key == key:
+                current_node.value = None
+        self.get_load_factor()
 
-        existing_value = self.bucket[bucket_idx]
-        if existing_value:
-            last = None
-            while existing_value:
-                if existing_value.key == key:
-                    if last:
-                        last.next = existing_value.next
-                    else:
-                        self.bucket[bucket_idx] = existing_value.next
-                last = existing_value
-                existing_value = existing_value.next
+        # key_hash = self.djb2(key)
+        # bucket_idx = key_hash % self.capacity
+
+        # existing_value = self.bucket[bucket_idx]
+        # if existing_value:
+        #     last = None
+        #     while existing_value:
+        #         if existing_value.key == key:
+        #             if last:
+        #                 last.next = existing_value.next
+        #             else:
+        #                 self.bucket[bucket_idx] = existing_value.next
+        #         last = existing_value
+        #         existing_value = existing_value.next
 
 
     def get(self, key):
@@ -140,17 +182,26 @@ class HashTable:
 
         Implement this.
         """
-        key_hash = self.djb2(key)
-        bucket_idx = key_hash % self.capacity
+        current_node = None
+        for x in range(len(self.bucket)):
+            current_node = self.bucket[x]
+            while current_node != None:
+                if current_node.key == key:
+                    return current_node.value
+                else:
+                    current_node = current_node.next
 
-        existing_value = self.bucket[bucket_idx]
-        if existing_value:
-            while existing_value:
-                if existing_value.key == key:
-                    return existing_value.value
-                existing_value = existing_value.next
+        # key_hash = self.djb2(key)
+        # bucket_idx = key_hash % self.capacity
 
-        return None
+        # existing_value = self.bucket[bucket_idx]
+        # if existing_value:
+        #     while existing_value:
+        #         if existing_value.key == key:
+        #             return existing_value.value
+        #         existing_value = existing_value.next
+
+        # return None
 
 
     def resize(self, new_capacity):
@@ -160,7 +211,22 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        pairs = {}
+        for x in range(len(self.bucket)):
+            current_node = self.bucket[x]
+            if current_node == None:
+                pass
+            else:
+                if current_node.next == None:
+                    pairs[current_node.key] = current_node.value
+                while current_node.next != None:
+                    pairs[current_node.key] = current_node.value
+                    current_node = current_node.next
+        self.capacity = new_capacity
+        self.bucket = [None] * (self.capacity if self.capacity > 8 else 8)
+
+        for key in pairs:
+            self.rehash(key, pairs[key])
 
 
 
